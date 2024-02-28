@@ -129,7 +129,8 @@ resource "github_repository" "repository" {
         branch = var.pages.branch
         path   = try(var.pages.path, "/")
       }
-      cname = try(var.pages.cname, null)
+      cname      = try(var.pages.cname, null)
+      build_type = try(var.pages.build_type, "legacy")
     }
   }
 
