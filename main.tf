@@ -56,8 +56,8 @@ locals {
     for b in local.branch_protections_v3 :
     length(keys(b.required_status_checks)) > 0 ? [
       merge({
-        strict   = null
-        contexts = []
+        strict = null
+        checks = []
     }, b.required_status_checks)] : []
   ]
 
@@ -68,8 +68,10 @@ locals {
         dismiss_stale_reviews           = true
         dismissal_users                 = []
         dismissal_teams                 = []
+        dismissal_apps                  = []
         require_code_owner_reviews      = null
         required_approving_review_count = null
+        bypass_pull_request_allowances  = null
     }, b.required_pull_request_reviews)] : []
   ]
 
@@ -260,8 +262,8 @@ resource "github_branch_protection_v3" "branch_protection" {
     for_each = local.required_status_checks[count.index]
 
     content {
-      strict   = required_status_checks.value.strict
-      contexts = required_status_checks.value.contexts
+      strict = required_status_checks.value.strict
+      checks = required_status_checks.value.checks
     }
   }
 
@@ -272,8 +274,17 @@ resource "github_branch_protection_v3" "branch_protection" {
       dismiss_stale_reviews           = required_pull_request_reviews.value.dismiss_stale_reviews
       dismissal_users                 = required_pull_request_reviews.value.dismissal_users
       dismissal_teams                 = [for t in required_pull_request_reviews.value.dismissal_teams : replace(lower(t), "/[^a-z0-9_]/", "-")]
+      dismissal_apps                  = [for a in required_pull_request_reviews.value.dismissal_apps : replace(lower(a), "/[^a-z0-9_]/", "-")]
       require_code_owner_reviews      = required_pull_request_reviews.value.require_code_owner_reviews
       required_approving_review_count = required_pull_request_reviews.value.required_approving_review_count
+      dynamic "bypass_pull_request_allowances" {
+        for_each = required_pull_request_reviews.value.bypass_pull_request_allowances != null ? [true] : []
+
+        content {
+          users = required_pull_request_reviews.value.bypass_pull_request_allowances.users
+          apps  = required_pull_request_reviews.value.bypass_pull_request_allowances.apps
+        }
+      }
     }
   }
 
